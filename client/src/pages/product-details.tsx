@@ -24,6 +24,7 @@ export default function ProductDetailsPage() {
 
   const { data: product, isLoading } = useQuery<SelectProduct & { farmer: { username: string } }>({
     queryKey: [`/api/products/${productId}`],
+    enabled: !!productId, // Only fetch when we have a productId
   });
 
   const createChatMutation = useMutation({
@@ -45,6 +46,11 @@ export default function ProductDetailsPage() {
       });
     },
   });
+
+  if (!productId) {
+    setLocation("/");
+    return null;
+  }
 
   if (isLoading || !product) {
     return (
