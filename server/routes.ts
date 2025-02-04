@@ -5,9 +5,49 @@ import { setupAuth } from "./auth";
 import { db } from "@db";
 import { products, chats, messages, type InsertProduct } from "@db/schema";
 import { eq, and, desc } from "drizzle-orm";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import express from 'express';
+
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer for image upload
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG and GIF are allowed.'));
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
+
+  // Serve uploaded files
+  app.use('/uploads', express.static(uploadsDir));
 
   // Products
   app.get("/api/products", async (req, res) => {
@@ -20,16 +60,30 @@ export function registerRoutes(app: Express): Server {
     res.json(allProducts);
   });
 
-  app.post("/api/products", async (req: Request<{}, {}, InsertProduct>, res) => {
+  app.post("/api/products", upload.single('image'), async (req: Request<{}, {}, InsertProduct>, res) => {
     if (!req.user || req.user.role !== "farmer") {
       return res.status(403).json({ message: "Only farmers can create products" });
     }
 
-    const [product] = await db
-      .insert(products)
-      .values({ ...req.body, farmerId: req.user.id })
-      .returning();
-    res.status(201).json(product);
+    try {
+      const productData = {
+        ...req.body,
+        price: parseFloat(req.body.price),
+        quantity: parseInt(req.body.quantity),
+        farmerId: req.user.id,
+        imageUrl: req.file ? `/uploads/${req.file.filename}` : undefined
+      };
+
+      const [product] = await db
+        .insert(products)
+        .values(productData)
+        .returning();
+
+      res.status(201).json(product);
+    } catch (error) {
+      console.error('Error creating product:', error);
+      res.status(500).json({ message: "Failed to create product" });
+    }
   });
 
   // Chats
@@ -37,7 +91,7 @@ export function registerRoutes(app: Express): Server {
     if (!req.user) return res.sendStatus(401);
 
     const userChats = await db.query.chats.findMany({
-      where: req.user.role === "farmer" 
+      where: req.user.role === "farmer"
         ? eq(chats.farmerId, req.user.id)
         : eq(chats.buyerId, req.user.id),
       with: {
@@ -87,8 +141,8 @@ export function registerRoutes(app: Express): Server {
   });
 
   const httpServer = createServer(app);
-  
-  // WebSocket setup for real-time chat
+
+  // WebSocket setup
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
   const clients = new Map<number, WebSocket>();

@@ -18,6 +18,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { useState } from "react";
 
 const productSchema = z.object({
   name: z.string().min(3),
@@ -25,13 +26,14 @@ const productSchema = z.object({
   price: z.number().min(0),
   quantity: z.number().min(1),
   location: z.string().min(3),
-  imageUrl: z.string().optional(),
 });
 
 export default function ProductsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -41,13 +43,31 @@ export default function ProductsPage() {
       price: 0,
       quantity: 1,
       location: "",
-      imageUrl: "",
     },
   });
 
   const createProductMutation = useMutation({
     mutationFn: async (values: z.infer<typeof productSchema>) => {
-      const res = await apiRequest("POST", "/api/products", values);
+      const formData = new FormData();
+      Object.entries(values).forEach(([key, value]) => {
+        formData.append(key, value.toString());
+      });
+
+      if (selectedImage) {
+        formData.append('image', selectedImage);
+      }
+
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
+
       return res.json();
     },
     onSuccess: () => {
@@ -66,6 +86,14 @@ export default function ProductsPage() {
       });
     },
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
 
   if (user?.role !== "farmer") {
     setLocation("/");
@@ -177,19 +205,24 @@ export default function ProductsPage() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Image URL (Optional)</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="space-y-2">
+                  <FormLabel>Product Image</FormLabel>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="cursor-pointer"
+                  />
+                  {previewUrl && (
+                    <div className="mt-4">
+                      <img
+                        src={previewUrl}
+                        alt="Preview"
+                        className="max-w-xs rounded-lg"
+                      />
+                    </div>
                   )}
-                />
+                </div>
 
                 <Button
                   type="submit"
