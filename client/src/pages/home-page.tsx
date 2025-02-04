@@ -1,9 +1,9 @@
-import { Link, useLocation, useMatch } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, LogOut, MessageCircle, Plus } from "lucide-react";
+import { Loader2, LogOut, MessageCircle, Plus, User } from "lucide-react";
 import type { SelectProduct } from "@db/schema";
 
 function formatQuantity(quantity: number): string {
@@ -37,6 +37,11 @@ export default function HomePage() {
             {user?.role === "farmer" ? "My Products" : "Available Products"}
           </h1>
           <div className="flex items-center gap-4">
+            <Link href="/profile">
+              <Button variant="outline" size="icon">
+                <User className="h-4 w-4" />
+              </Button>
+            </Link>
             <Link href="/chat">
               <Button variant="outline" size="icon">
                 <MessageCircle className="h-4 w-4" />
