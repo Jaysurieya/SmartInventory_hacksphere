@@ -60,6 +60,26 @@ export function registerRoutes(app: Express): Server {
     res.json(allProducts);
   });
 
+  app.get("/api/products/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    const product = await db.query.products.findFirst({
+      where: eq(products.id, id),
+      with: {
+        farmer: true,
+      },
+    });
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json(product);
+  });
+
   app.post("/api/products", upload.single('image'), async (req: Request<{}, {}, InsertProduct>, res) => {
     if (!req.user || req.user.role !== "farmer") {
       return res.status(403).json({ message: "Only farmers can create products" });

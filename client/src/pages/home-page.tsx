@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation, useMatch } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ export default function HomePage() {
   const { data: products, isLoading } = useQuery<SelectProduct[]>({
     queryKey: ["/api/products"],
   });
+  const [location, setLocation] = useLocation();
 
   if (isLoading) {
     return (
@@ -63,7 +64,7 @@ export default function HomePage() {
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {products?.map((product) => (
-            <Card key={product.id}>
+            <Card key={product.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setLocation(`/product?id=${product.id}`)}>
               <CardContent className="p-6">
                 <div className="aspect-square rounded-lg bg-gray-100 mb-4">
                   {product.imageUrl ? (
@@ -90,12 +91,13 @@ export default function HomePage() {
                     </p>
                   </div>
                   {user?.role === "buyer" && (
-                    <Link href={`/chat?productId=${product.id}&farmerId=${product.farmerId}`}>
-                      <Button>
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        Chat with Farmer
-                      </Button>
-                    </Link>
+                    <Button onClick={(e) => {
+                      e.stopPropagation();
+                      setLocation(`/chat?productId=${product.id}&farmerId=${product.farmerId}`);
+                    }}>
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Chat with Farmer
+                    </Button>
                   )}
                 </div>
               </CardContent>
