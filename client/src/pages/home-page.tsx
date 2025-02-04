@@ -74,7 +74,7 @@ export default function HomePage() {
                 <p className="text-sm text-gray-500">{product.category}</p>
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-2xl font-bold">
-                    ${Number(product.price).toFixed(2)}
+                    ₹{Number(product.price).toFixed(2)}
                   </span>
                   {user?.role === "buyer" && (
                     <Link href={`/chat?productId=${product.id}&farmerId=${product.farmerId}`}>
