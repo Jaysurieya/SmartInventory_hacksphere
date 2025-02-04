@@ -10,7 +10,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,13 +17,13 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 const productSchema = z.object({
   name: z.string().min(3),
   category: z.string().min(2),
-  price: z.string().transform((val) => parseFloat(val)),
-  quantity: z.string().transform((val) => parseInt(val)),
+  price: z.number().min(0),
+  quantity: z.number().min(1),
   location: z.string().min(3),
   imageUrl: z.string().optional(),
 });
@@ -39,8 +38,8 @@ export default function ProductsPage() {
     defaultValues: {
       name: "",
       category: "",
-      price: "",
-      quantity: "",
+      price: 0,
+      quantity: 1,
       location: "",
       imageUrl: "",
     },
@@ -133,7 +132,12 @@ export default function ProductsPage() {
                       <FormItem>
                         <FormLabel>Price (₹)</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" {...field} />
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            onChange={e => field.onChange(parseFloat(e.target.value))}
+                            value={field.value}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -147,7 +151,11 @@ export default function ProductsPage() {
                       <FormItem>
                         <FormLabel>Quantity</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input 
+                            type="number" 
+                            onChange={e => field.onChange(parseInt(e.target.value))}
+                            value={field.value}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

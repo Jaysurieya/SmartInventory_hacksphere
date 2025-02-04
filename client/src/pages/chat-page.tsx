@@ -44,7 +44,11 @@ export default function ChatPage() {
   const allMessages = [
     ...(selectedChat?.messages || []),
     ...localMessages.filter((msg) => msg.chatId === selectedChatId),
-  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  ].sort((a, b) => {
+    const dateA = new Date(a.createdAt as string).getTime();
+    const dateB = new Date(b.createdAt as string).getTime();
+    return dateA - dateB;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
