@@ -82,6 +82,11 @@ export function setupAuth(app: Express) {
       return res.status(400).send(error.toString());
     }
 
+    // Validate role
+    if (!["farmer", "buyer"].includes(result.data.role)) {
+      return res.status(400).send("Invalid role. Must be either 'farmer' or 'buyer'");
+    }
+
     const [existingUser] = await getUserByUsername(result.data.username);
     if (existingUser) {
       return res.status(400).send("Username already exists");
@@ -101,8 +106,21 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/login", async (req, res, next) => {
+    passport.authenticate("local", async (err: any, user: SelectUser | false) => {
+      if (err) return next(err);
+      if (!user) return res.status(401).send("Invalid username or password");
+
+      // Check if trying to login with the correct role
+      if (req.body.role && req.body.role !== user.role) {
+        return res.status(403).send(`You are registered as a ${user.role}, cannot login as a ${req.body.role}`);
+      }
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(200).json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
