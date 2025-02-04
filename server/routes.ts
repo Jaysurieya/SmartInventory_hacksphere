@@ -96,7 +96,7 @@ export function registerRoutes(app: Express): Server {
 
       const [product] = await db
         .insert(products)
-        .values(productData)
+        .values([productData])
         .returning();
 
       res.status(201).json(product);

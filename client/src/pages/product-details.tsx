@@ -20,11 +20,12 @@ export default function ProductDetailsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
-  const productId = new URLSearchParams(location.split('?')[1]).get('id');
+  const searchParams = new URLSearchParams(window.location.search);
+  const productId = searchParams.get('id');
 
   const { data: product, isLoading } = useQuery<SelectProduct & { farmer: { username: string } }>({
     queryKey: [`/api/products/${productId}`],
-    enabled: !!productId, // Only fetch when we have a productId
+    enabled: !!productId,
   });
 
   const createChatMutation = useMutation({
