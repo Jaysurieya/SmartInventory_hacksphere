@@ -11,6 +11,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -24,7 +31,8 @@ const productSchema = z.object({
   name: z.string().min(3),
   category: z.string().min(2),
   price: z.number().min(0),
-  quantity: z.number().min(1),
+  quantity: z.number().min(0.001),
+  quantityUnit: z.enum(["kg", "g"]),
   location: z.string().min(3),
 });
 
@@ -42,14 +50,18 @@ export default function ProductsPage() {
       category: "",
       price: 0,
       quantity: 1,
+      quantityUnit: "kg",
       location: "",
     },
   });
 
   const createProductMutation = useMutation({
     mutationFn: async (values: z.infer<typeof productSchema>) => {
+      // Convert grams to kg if the unit is grams
+      const normalizedQuantity = values.quantityUnit === "g" ? values.quantity / 1000 : values.quantity;
+
       const formData = new FormData();
-      Object.entries(values).forEach(([key, value]) => {
+      Object.entries({ ...values, quantity: normalizedQuantity }).forEach(([key, value]) => {
         formData.append(key, value.toString());
       });
 
@@ -172,23 +184,52 @@ export default function ProductsPage() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="quantity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Quantity</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            onChange={e => field.onChange(parseInt(e.target.value))}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <FormField
+                      control={form.control}
+                      name="quantity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Quantity</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step={form.watch("quantityUnit") === "kg" ? "0.1" : "1"}
+                              min={form.watch("quantityUnit") === "kg" ? "0.1" : "1"}
+                              onChange={e => field.onChange(parseFloat(e.target.value))}
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="quantityUnit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Unit</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select unit" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="kg">Kg</SelectItem>
+                              <SelectItem value="g">Grams</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
 
                 <FormField

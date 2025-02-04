@@ -6,6 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, LogOut, MessageCircle, Plus } from "lucide-react";
 import type { SelectProduct } from "@db/schema";
 
+function formatQuantity(quantity: number): string {
+  if (quantity >= 1) {
+    return `${quantity.toFixed(1)} kg`;
+  } else {
+    return `${(quantity * 1000).toFixed(0)} g`;
+  }
+}
+
 export default function HomePage() {
   const { user, logoutMutation } = useAuth();
   const { data: products, isLoading } = useQuery<SelectProduct[]>({
@@ -73,9 +81,14 @@ export default function HomePage() {
                 <h3 className="text-lg font-semibold">{product.name}</h3>
                 <p className="text-sm text-gray-500">{product.category}</p>
                 <div className="mt-4 flex items-center justify-between">
-                  <span className="text-2xl font-bold">
-                    ₹{Number(product.price).toFixed(2)}
-                  </span>
+                  <div className="space-y-1">
+                    <span className="text-2xl font-bold">
+                      ₹{Number(product.price).toFixed(2)}
+                    </span>
+                    <p className="text-sm text-gray-500">
+                      Quantity: {formatQuantity(Number(product.quantity))}
+                    </p>
+                  </div>
                   {user?.role === "buyer" && (
                     <Link href={`/chat?productId=${product.id}&farmerId=${product.farmerId}`}>
                       <Button>
