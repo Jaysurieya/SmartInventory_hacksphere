@@ -39,11 +39,20 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const productsRelations = relations(products, ({ one }) => ({
+export const productImages = pgTable("product_images", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: 'cascade' }),
+  imageData: text("image_data", { mode: "binary" }).notNull(),
+  mimeType: text("mime_type").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const productsRelations = relations(products, ({ one, many }) => ({
   farmer: one(users, {
     fields: [products.farmerId],
     references: [users.id],
   }),
+  images: many(productImages),
 }));
 
 export const chatsRelations = relations(chats, ({ one, many }) => ({
@@ -73,6 +82,13 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
+export const productImagesRelations = relations(productImages, ({ one }) => ({
+  product: one(products, {
+    fields: [productImages.productId],
+    references: [products.id],
+  }),
+}));
+
 export type SelectUser = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type SelectProduct = typeof products.$inferSelect;
@@ -81,6 +97,8 @@ export type SelectChat = typeof chats.$inferSelect;
 export type InsertChat = typeof chats.$inferInsert;
 export type SelectMessage = typeof messages.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
+export type SelectProductImage = typeof productImages.$inferSelect;
+export type InsertProductImage = typeof productImages.$inferInsert;
 
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
@@ -90,3 +108,5 @@ export const insertChatSchema = createInsertSchema(chats);
 export const selectChatSchema = createSelectSchema(chats);
 export const insertMessageSchema = createInsertSchema(messages);
 export const selectMessageSchema = createSelectSchema(messages);
+export const insertProductImageSchema = createInsertSchema(productImages);
+export const selectProductImageSchema = createSelectSchema(productImages);

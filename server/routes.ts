@@ -3,13 +3,12 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { products, chats, messages, type InsertProduct } from "@db/schema";
+import { products, chats, messages, type InsertProduct, productImages } from "@db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import express from 'express';
-
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -103,6 +102,31 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Error creating product:', error);
       res.status(500).json({ message: "Failed to create product" });
+    }
+  });
+
+  // New endpoint for uploading images to a specific product
+  app.post("/api/products/:id/images", upload.single('image'), async (req, res) => {
+    const productId = parseInt(req.params.id);
+    if (isNaN(productId)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    try {
+      const imageData = fs.readFileSync(req.file.path);
+      const mimeType = req.file.mimetype;
+
+      const image = {
+        productId,
+        imageData,
+        mimeType,
+      };
+
+      await db.insert(productImages).values(image);
+      res.status(201).json({ message: "Image uploaded successfully." });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error uploading image." });
     }
   });
 
